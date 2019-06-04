@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: message-manager
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: message-manager
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: message-manager
+    spec:
+      containers:
+      - name: message-manager
+        image: message-manager:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 50
+          timeoutSeconds: 7
+          periodSeconds: 10
+          failureThreshold: 4
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 65
+          timeoutSeconds: 7
+          periodSeconds: 15
+          failureThreshold: 3
+        env:
+        - name: CONFIG_FOLDER
+          value: /workspace/config
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: rabbitmq_host
+        - name: RABBITMQ_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: rabbitmq_port
+        - name: SECRETS_RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: secret-config
+              key: rabbitmq_user
+        - name: SECRETS_RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secret-config
+              key: rabbitmq_password
+        volumeMounts:
+          - mountPath: /workspace/config
+            name: config-volume
+      volumes:
+        - name: config-volume
+          persistentVolumeClaim:
+            claimName: config-persistent-volume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-manager
+  namespace: dev
+  labels:
+    app: message-manager
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      nodePort: 30000
+  selector:
+    app: message-manager

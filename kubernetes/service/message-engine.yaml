@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: message-engine
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: message-engine
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: message-engine
+    spec:
+      containers:
+      - name: message-engine
+        image: message-engine:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8081
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 50
+          timeoutSeconds: 7
+          periodSeconds: 10
+          failureThreshold: 4
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 65
+          timeoutSeconds: 7
+          periodSeconds: 15
+          failureThreshold: 3
+        env:
+        - name: CONFIG_FOLDER
+          value: /workspace/config
+        - name: DATABASE_DRIVER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: database_driver
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: database_url
+        - name: SECRETS_MYSQL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: secret-config
+              key: mysql_root_user
+        - name: SECRETS_MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secret-config
+              key: mysql_root_password
+        volumeMounts:
+          - mountPath: /workspace/config
+            name: config-volume
+      volumes:
+        - name: config-volume
+          persistentVolumeClaim:
+            claimName: config-persistent-volume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-engine
+  namespace: dev
+  labels:
+    app: message-engine
+spec:
+  type: NodePort
+  ports:
+    - port: 8081
+      name: port-8081
+  selector:
+    app: message-engine

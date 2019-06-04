@@ -1,0 +1,26 @@
+plugins {
+    id 'org.springframework.boot' version '2.1.5.RELEASE'
+    id 'java'
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+group = 'com.worldmessages'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+description = "Message Engine"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.16'
+    compile group: 'org.flywaydb', name: 'flyway-core', version: '5.2.4'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}

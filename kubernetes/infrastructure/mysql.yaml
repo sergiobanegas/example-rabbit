@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - image: mysql:8.0.16
+        name: mysql
+        readinessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 20
+          timeoutSeconds: 7
+          periodSeconds: 3
+          failureThreshold: 4
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 40
+          timeoutSeconds: 7
+          periodSeconds: 8
+          failureThreshold: 1
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secret-config
+              key: mysql_root_password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: database_name
+        - name: MYSQL_ROOT_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: database_host
+        ports:
+        - containerPort: 3306
+          name: db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: dev
+  labels:
+    app: db
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 3306
+    nodePort: 30004
+  selector:
+    app: db

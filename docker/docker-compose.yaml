@@ -1,0 +1,115 @@
+version: '3'
+services:
+    db:
+        volumes:
+            - db:/var/lib/mysql
+        container_name: db
+        image: mysql:8.0.16
+        command: --default-authentication-plugin=mysql_native_password --init-file /data/application/init.sql       
+        volumes:
+        - ./init.sql:/data/application/init.sql
+        environment:
+            MYSQL_DATABASE: worldmessages
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_PORT: 3306
+            MYSQL_USER: user
+            MYSQL_PASSWORD: password
+        restart: always
+        ports:
+            - 3306:3306
+            
+    rabbitmq:
+        container_name: rabbitmq
+        image: rabbitmq:3-management
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        environment: 
+            RABBITMQ_DEFAULT_PASS: pass
+            RABBITMQ_DEFAULT_USER: user
+
+    message-manager:
+        container_name: message-manager
+        image: message-manager:latest
+        expose:
+            - 8080
+        ports:
+            - 8080:8080
+        volumes:
+            - ${LOCAL_CONFIG_FOLDER}:${CONFIG_FOLDER}
+        environment:
+            - CONFIG_FOLDER
+        depends_on:
+            - rabbitmq
+            - message-engine
+        links:
+            - rabbitmq:rabbitmq.wmdev
+            - message-engine:message-engine.wmdev
+
+    message-engine:
+        container_name: message-engine
+        image: message-engine:latest
+        expose:
+            - 8081
+        ports:
+            - 8081:8081
+        restart: on-failure
+        volumes:
+            - ${LOCAL_CONFIG_FOLDER}:${CONFIG_FOLDER}
+        environment:
+            - CONFIG_FOLDER
+        depends_on:
+            - db
+        links:
+            - db:db.wmdev
+
+    spain-service:
+        container_name: spain-service
+        image: spain-service:latest
+        volumes:
+            - ${LOCAL_CONFIG_FOLDER}:${CONFIG_FOLDER}
+        environment:
+            - CONFIG_FOLDER
+        depends_on:
+            - rabbitmq
+        links:
+            - rabbitmq:rabbitmq.wmdev
+
+    italy-service:
+        container_name: italy-service
+        image: italy-service:latest
+        volumes:
+            - ${LOCAL_CONFIG_FOLDER}:${CONFIG_FOLDER}
+        environment:
+            - CONFIG_FOLDER
+        depends_on:
+            - rabbitmq
+        links:
+            - rabbitmq:rabbitmq.wmdev
+
+    japan-service:
+        container_name: japan-service
+        image: japan-service:latest
+        volumes:
+            - ${LOCAL_CONFIG_FOLDER}:${CONFIG_FOLDER}
+        environment:
+            - CONFIG_FOLDER
+        depends_on:
+            - rabbitmq
+        links:
+            - rabbitmq:rabbitmq.wmdev
+
+    eu-service:
+        container_name: eu-service
+        image: eu-service:latest
+        volumes:
+            - ${LOCAL_CONFIG_FOLDER}:${CONFIG_FOLDER}
+        environment:
+            - CONFIG_FOLDER
+        depends_on:
+            - rabbitmq
+        links:
+            - rabbitmq:rabbitmq.wmdev
+
+volumes:
+  db:

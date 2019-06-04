@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: dev
+  labels:
+      app: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+      - image: rabbitmq:3-management
+        name: rabbitmq
+        readinessProbe:
+          tcpSocket:
+            port: 5672
+          initialDelaySeconds: 20
+          timeoutSeconds: 7
+          periodSeconds: 3
+          failureThreshold: 4
+        livenessProbe:
+          tcpSocket:
+            port: 5672
+          initialDelaySeconds: 40
+          timeoutSeconds: 7
+          periodSeconds: 8
+          failureThreshold: 1
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          valueFrom:
+            secretKeyRef:
+              name: secret-config
+              key: rabbitmq_user
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: secret-config
+              key: rabbitmq_password
+        ports:
+          - containerPort: 5672
+            name: port-5672
+          - containerPort: 15672
+            name: management
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: dev
+  labels:
+    app: rabbitmq
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5672
+      nodePort: 30002
+      name: port-5672
+    - port: 15672
+      nodePort: 30003
+      name: port-15672
+  selector:
+    app: rabbitmq
